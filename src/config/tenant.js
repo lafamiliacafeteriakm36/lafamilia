@@ -8,7 +8,7 @@ export const tenant = {
     franchiseName: 'La Familia',
     address: '',
     city: '',
-    domain: 'lafamilia.vercel.app',
+    domain: 'lafamiliakm36.vercel.app',
     systemName: 'La Familia',
     navLogo: '/logo.jpg',
     mainLogo: '/logo.jpg',
