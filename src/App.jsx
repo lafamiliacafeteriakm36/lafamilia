@@ -226,7 +226,7 @@ function MainAppWrapper(props) {
 
 // Fix App to use Wrapper
 function AppFix() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('sales');
   const [currentHash, setCurrentHash] = useState(window.location.hash);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState(localStorage.getItem('seitu_role') || 'admin');
@@ -273,30 +273,6 @@ function AppFix() {
     window.location.hash = '#/';
   };
 
-  // Rutas públicas: Portal del cliente y Landing con sus secciones (#nosotros, #puntos, etc)
-  const isPortal = currentHash === '#/portal';
-  const isLanding = !isPortal && (
-    currentHash === '' ||
-    currentHash === '#/' ||
-    (currentHash.startsWith('#') && !currentHash.includes('/'))
-  );
-
-  // Normalizar el hash para comparaciones robustas
-  const normalizedHash = currentHash.split('?')[0].toLowerCase();
-
-  // Rutas del evento Paloma 15 (Prioridad máxima y Públicas)
-  if (normalizedHash === '#/15' || normalizedHash === '#/15/') return <><Paloma15 /><ThemeToggle /></>;
-  if (normalizedHash === '#/15-show' || normalizedHash === '#/15-show/') return <><Paloma15Show /></>;
-  if (normalizedHash === '#/15-admin' || normalizedHash === '#/15-admin/') return <><Paloma15Admin /><ThemeToggle /></>;
-
-  // Rutas del evento Martina 15 (Públicas)
-  if (normalizedHash === '#/martina' || normalizedHash === '#/martina/') return <><Martina15 /><ThemeToggle /></>;
-  if (normalizedHash === '#/martina-show' || normalizedHash === '#/martina-show/') return <><Martina15Show /></>;
-  if (normalizedHash === '#/martina-admin' || normalizedHash === '#/martina-admin/') return <><Martina15Admin /><ThemeToggle /></>;
-
-  if (isPortal) return <><CustomerPortal /><ThemeToggle /><AIChatbot /></>;
-  if (isLanding) return <><LandingPage /><ThemeToggle /><AIChatbot /></>;
-
   return (
     <MainAppWrapper
       activeTab={activeTab}
@@ -310,3 +286,4 @@ function AppFix() {
 }
 
 export default AppFix;
+

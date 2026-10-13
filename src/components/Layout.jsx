@@ -13,17 +13,10 @@ export default function Layout({ children, activeTab, onTabChange, onLogout, use
         { id: 'cash', label: 'Caja y Turnos', icon: DollarSign },
         { id: 'inventory', label: 'Stock', icon: Package },
         { id: 'catalog', label: 'Catálogo', icon: BookOpen },
-        { id: 'ice-cream-stock', label: 'Baldes', icon: BarChart3 },
-        { id: 'ice-cream-unit-control', label: 'Helados', icon: ClipboardList },
         { id: 'metrics', label: 'Métricas', icon: BarChart3 },
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { id: 'settings', label: 'Config', icon: Settings },
-    ].filter(item => {
-        if (userRole === 'stock') {
-            return item.id === 'ice-cream-stock' || item.id === 'ice-cream-unit-control';
-        }
-        return true;
-    });
+    ];
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex flex-col md:flex-row transition-colors duration-300">
