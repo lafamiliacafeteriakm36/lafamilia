@@ -89,8 +89,7 @@ export const printTicket = (order) => {
 
     // Header
     printWindow.document.write('<div class="header">');
-    // Using the Instagram icon URL found in legacy code
-    printWindow.document.write('<img src="/seitu_logo.jpg" alt="Seitu" style="width: 80px; margin-bottom: 10px;" onerror="this.style.display=\'none\'" />');
+    printWindow.document.write('<img src="/logo_lafamilia.jpg" alt="La Familia" style="max-width: 240px; width: 100%; height: auto; display: block; margin: 0 auto 10px; border-radius: 8px;" onerror="this.style.display=\'none\'" />');
     printWindow.document.write(`<h1>${tenant.systemName}</h1>`);
 
     if (fiscalData) {
@@ -160,13 +159,9 @@ export const printTicket = (order) => {
 
     // Footer
     printWindow.document.write('<div class="footer">');
-    printWindow.document.write('<div style="margin-bottom: 5px;">Siguenos en Instagram</div>');
-    printWindow.document.write('<img src="/instagram_logo.png" width="30" style="vertical-align:middle; margin-right:5px;"/>');
-    printWindow.document.write(`<span style="font-weight: bold;">@${tenant.social.instagram}</span>`);
-    printWindow.document.write('<div style="margin-top: 10px; border-top: 1px dashed #ccc; padding-top: 10px; font-size: 14px; font-weight: bold;">');
-    printWindow.document.write('Consulta tus puntos con tu DNI en:<br/>');
-    printWindow.document.write(`<span style="font-size: 16px;">${tenant.domain}</span>`);
-    printWindow.document.write('</div>');
+    if (tenant.social && tenant.social.instagram) {
+        printWindow.document.write(`<div style="margin-bottom: 5px; font-size: 14px;">Seguinos en Instagram: <b>@${tenant.social.instagram}</b></div>`);
+    }
     printWindow.document.write('<p style="font-weight: bold; font-size: 1.1em; margin-top: 15px;">¡Gracias por su compra!</p>');
     printWindow.document.write('</div>');
 

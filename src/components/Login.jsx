@@ -11,7 +11,7 @@ export default function Login({ onLoginSuccess }) {
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    const displayNavLogo = '/seitu_ico.ico';
+    const displayNavLogo = '/logo_lafamilia.jpg';
     const displayTitleMarkup = (
         <h1 className="text-4xl font-black text-slate-900 mb-2">
             LA <span className="text-brand-500">FAMILIA</span>

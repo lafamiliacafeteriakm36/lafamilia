@@ -23,7 +23,7 @@ export default function Layout({ children, activeTab, onTabChange, onLogout, use
             {/* Sidebar Desktop */}
             <aside className="hidden md:flex flex-col w-20 bg-slate-900 border-r border-slate-800 text-white min-h-screen shadow-xl z-20 items-center">
                 <div className="p-4 border-b border-slate-800 flex flex-col items-center gap-3">
-                    <img src="/seitu_ico.ico" alt="Logo" className="w-10 h-10 object-contain" title="La Familia" />
+                    <img src="/logo_lafamilia.jpg" alt="Logo" className="w-10 h-10 object-contain rounded-md" title="La Familia" />
 
                     {/* Botón de Sincronización Manual */}
                     <button
