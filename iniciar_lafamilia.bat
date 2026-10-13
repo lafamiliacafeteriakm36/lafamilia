@@ -9,7 +9,10 @@ echo.
 cd /d "%~dp0"
 
 :: Esperar 2 segundos y abrir en el navegador
+timeout /t 2 /nobreak >nul
 start "" "http://localhost:5173"
 
-:: Iniciar Vite
-npm run dev
+:: Iniciar Vite con npm.cmd para evitar problemas de PowerShell
+call npm.cmd run dev
+
+pause
