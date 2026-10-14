@@ -12,6 +12,8 @@ export default function Layout({ children, activeTab, onTabChange, onLogout, use
     const navItems = [
         { id: 'sales', label: 'Ventas', icon: TrendingUp },
         { id: 'cash', label: 'Caja y Turnos', icon: DollarSign },
+        { id: 'staff', label: 'Personal', icon: Users },
+        { id: 'finances', label: 'Finanzas', icon: Wallet },
         { id: 'inventory', label: 'Stock', icon: Package },
         { id: 'catalog', label: 'Catálogo', icon: BookOpen },
         { id: 'metrics', label: 'Métricas', icon: BarChart3 },

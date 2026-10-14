@@ -72,8 +72,9 @@ function MainApp({ inventory, sales, purchases, activeTab, setActiveTab, isAuthe
       case 'cash': return <CashControl />;
       case 'sales': return <POS />;
       case 'metrics': return <Metrics />;
+      case 'finances': return <Finances initialTab="suppliers" />;
+      case 'staff': return <Finances initialTab="staff" />;
       case 'settings': return <Settings />;
-      case 'finances': return <Finances />;
       case 'ice-cream-stock': return <IceCreamStock />;
       case 'ice-cream-unit-control': return <IceCreamUnitControl />;
       case 'customers': return <CustomerList />;

@@ -30,7 +30,7 @@ import {
     AtSign
 } from 'lucide-react';
 
-export default function Finances() {
+export default function Finances({ initialTab = 'suppliers' }) {
     const {
         debts, addDebt, addDebtPayment, deleteDebt,
         employees, addEmployee, addEmployeeRecord, deleteEmployee, updateEmployee,
@@ -39,7 +39,11 @@ export default function Finances() {
         envelopes, markEnvelopesAsDeposited, resetEmployeeLedger
     } = useStore();
 
-    const [activeTab, setActiveTab] = useState('suppliers'); // 'suppliers', 'staff', 'fixed'
+    const [activeTab, setActiveTab] = useState(initialTab); // 'suppliers', 'staff', 'fixed'
+
+    useEffect(() => {
+        if (initialTab) setActiveTab(initialTab);
+    }, [initialTab]);
 
     // --- Tab Content Renderers ---
     return (
