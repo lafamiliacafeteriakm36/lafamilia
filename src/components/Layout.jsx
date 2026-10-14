@@ -81,7 +81,7 @@ export default function Layout({ children, activeTab, onTabChange, onLogout, use
             {/* Mobile Header */}
             <div className="md:hidden bg-slate-900 text-white p-4 flex justify-between items-center sticky top-0 z-50 shadow-md">
                 <div className="flex items-center gap-2">
-                    <span className="font-bold text-lg">Seitu Manager</span>
+                    <span className="font-bold text-lg">La Familia</span>
                     {isSyncing && (
                         <div className="flex items-center gap-1 bg-brand-500/10 px-2 py-0.5 rounded-full border border-brand-500/20">
                             <div className="w-1.5 h-1.5 bg-brand-500 rounded-full animate-ping"></div>

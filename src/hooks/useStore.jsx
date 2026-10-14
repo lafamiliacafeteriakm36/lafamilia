@@ -1045,9 +1045,7 @@ function useStoreSource() {
                 pack_units: newProduct.packUnits || 1,
                 barcode: newProduct.barcode || '',
                 image: newProduct.image || '',
-                bonus_points: newProduct.bonusPoints || 0,
-                points_earned_ratio: newProduct.pointsEarnedRatio !== undefined ? newProduct.pointsEarnedRatio : 1,
-                point_cost: newProduct.pointCost || 0
+                bonus_points: newProduct.bonusPoints || 0
             }).then(({ error }) => {
                 if (error) console.error('Error al sincronizar producto:', error);
                 else console.log('✅ Producto sincronizado:', newProduct.name);
@@ -1075,9 +1073,7 @@ function useStoreSource() {
                     pack_units: updatedProduct.packUnits || 1,
                     barcode: updatedProduct.barcode || '',
                     image: updatedProduct.image || '',
-                    bonus_points: updatedProduct.bonusPoints || 0,
-                    points_earned_ratio: updatedProduct.pointsEarnedRatio !== undefined ? updatedProduct.pointsEarnedRatio : 1,
-                    point_cost: updatedProduct.pointCost || 0
+                    bonus_points: updatedProduct.bonusPoints || 0
                 }).then(({ error }) => {
                     if (error) {
                         console.error('Error al actualizar producto:', error);
@@ -1122,8 +1118,7 @@ function useStoreSource() {
                 image: p.image || '',
                 min_stock: Number(p.minStock) || 5,
                 cc: Number(p.cc) || 0,
-                pack_units: Number(p.packUnits) || 1,
-                points_earned_ratio: p.pointsEarnedRatio !== undefined ? p.pointsEarnedRatio : 1
+                pack_units: Number(p.packUnits) || 1
             }));
 
             // Split in chunks
@@ -1631,8 +1626,7 @@ function useStoreSource() {
                     min_stock: Number(p.minStock) || 5,
                     cc: p.cc || 0,
                     pack_units: p.packUnits || 1,
-                    barcode: p.barcode || '',
-                    points_earned_ratio: p.pointsEarnedRatio !== undefined ? p.pointsEarnedRatio : 1
+                    barcode: p.barcode || ''
                 }));
 
                 // Split in chunks of 50
@@ -2051,8 +2045,6 @@ function useStoreSource() {
                     min_stock: Number(p.minStock) || 5,
                     cc: Number(p.cc) || 0,
                     pack_units: Number(p.packUnits) || 1,
-                    points_earned_ratio: Number(p.pointsEarnedRatio || 0),
-                    point_cost: Number(p.pointCost || 0),
                     bonus_points: Number(p.bonusPoints || 0)
                 }));
                 // Chunked upsert
@@ -2338,8 +2330,6 @@ function useStoreSource() {
                         pack_units: finalItem.packUnits || 1,
                         barcode: finalItem.barcode || '',
                         image: finalItem.image || '',
-                        points_earned_ratio: finalItem.pointsEarnedRatio !== undefined ? finalItem.pointsEarnedRatio : 1,
-                        point_cost: finalItem.pointCost || 0,
                         bonus_points: finalItem.bonusPoints || 0,
                         updated_at: new Date().toISOString()
                     };
@@ -2849,10 +2839,7 @@ function useStoreSource() {
                 cc: Number(p.cc) || 0,
                 pack_units: Number(p.pack_units || p.packUnits) || 1,
                 barcode: p.barcode || '',
-                image: p.image || '',
-                bonus_points: Number(p.bonus_points || p.bonusPoints) || 0,
-                points_earned_ratio: p.points_earned_ratio !== undefined ? p.points_earned_ratio : (p.pointsEarnedRatio !== undefined ? p.pointsEarnedRatio : 1),
-                point_cost: Number(p.point_cost || p.pointCost) || 0
+                bonus_points: Number(p.bonus_points || p.bonusPoints) || 0
             }));
 
             const { error: upsertErr } = await supabase.from('catalog').upsert(cloudUpsertData);
@@ -3512,37 +3499,8 @@ function useStoreSource() {
         }
     };
 
-    const bulkUpdatePointsRatio = async (ids, ratio) => {
-        if (!supabase) return;
-        setLoading(true);
-        try {
-            console.log(`Updating ratio to ${ratio} for ${ids.length} items...`);
-
-            // 1. Bulk Update in Supabase
-            const { error } = await supabase
-                .from('catalog')
-                .update({ points_earned_ratio: ratio })
-                .in('id', ids);
-
-            if (error) throw error;
-
-            console.log("Supabase update success. Reloading data...");
-
-            // 2. Reload Data
-            if (typeof loadData === 'function') {
-                await loadData();
-            } else {
-                console.warn('loadData not found, forcing reload');
-                window.location.reload();
-                return;
-            }
-            alert(`✅ Se actualizaron ${ids.length} productos a Ratio x${ratio}.`);
-        } catch (err) {
-            console.error("Error updating points:", err);
-            alert("Error al actualizar puntos: " + err.message);
-        } finally {
-            setLoading(false);
-        }
+    const bulkUpdatePointsRatio = async () => {
+        return;
     };
 
     const uploadImage = async (file) => {

@@ -59,7 +59,7 @@ export const printTicket = (order) => {
         </div>
     `;
 
-    printWindow.document.write('<html><head><title>Ticket Seitu</title>');
+    printWindow.document.write('<html><head><title>Ticket La Familia</title>');
     printWindow.document.write(`
         <style>
             body {
