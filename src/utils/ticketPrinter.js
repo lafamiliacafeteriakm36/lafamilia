@@ -89,7 +89,7 @@ export const printTicket = (order) => {
 
     // Header
     printWindow.document.write('<div class="header">');
-    printWindow.document.write('<img src="/logo_lafamilia.jpg" alt="La Familia" style="max-width: 240px; width: 100%; height: auto; display: block; margin: 0 auto 10px; border-radius: 8px;" onerror="this.style.display=\'none\'" />');
+    printWindow.document.write(`<img src="${tenant.mainLogo || '/logo.jpg'}" alt="La Familia" style="max-width: 240px; width: 100%; height: auto; display: block; margin: 0 auto 10px; border-radius: 8px;" onerror="this.style.display='none'" />`);
     printWindow.document.write(`<h1>${tenant.systemName}</h1>`);
 
     if (fiscalData) {

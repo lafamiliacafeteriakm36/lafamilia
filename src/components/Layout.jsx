@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { LayoutDashboard, ShoppingCart, Package, TrendingUp, BookOpen, DollarSign, Menu, X, BarChart3, Settings, Wallet, Users, Gift, LogOut, Sun, Moon, Truck, ClipboardList, Instagram } from 'lucide-react';
 import Metrics from './Metrics';
 import { useStore } from '../hooks/useStore';
+import { tenant } from '../config/tenant';
 
 export default function Layout({ children, activeTab, onTabChange, onLogout, userRole = 'admin' }) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -23,7 +24,7 @@ export default function Layout({ children, activeTab, onTabChange, onLogout, use
             {/* Sidebar Desktop */}
             <aside className="hidden md:flex flex-col w-20 bg-slate-900 border-r border-slate-800 text-white min-h-screen shadow-xl z-20 items-center">
                 <div className="p-4 border-b border-slate-800 flex flex-col items-center gap-3">
-                    <img src="/logo_lafamilia.jpg" alt="Logo" className="w-10 h-10 object-contain rounded-md" title="La Familia" />
+                    <img src={tenant.navLogo || "/logo.jpg"} alt="Logo" className="w-10 h-10 object-contain rounded-md" title={tenant.systemName || "La Familia"} />
 
                     {/* Botón de Sincronización Manual */}
                     <button
