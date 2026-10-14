@@ -20,8 +20,8 @@ function useStoreSource() {
     const [sales, setSales] = useState([]);
     const [settings, setSettings] = useState({});
 
-    // v5.8.0: Force Reset to clean 1103/1104 and Categories
-    const CATALOG_VERSION = '5.8.2';
+    // v6.0.0: Full sync for La Familia catalog & clean categories
+    const CATALOG_VERSION = '6.0.0';
 
     // v16.82: Robust normalization function moved to top level hook scope
     // v5.3.2: RESTORATION MODE - ONLY FIXING REQUESTED ITEMS

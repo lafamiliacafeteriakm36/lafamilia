@@ -141,14 +141,7 @@ export default function Catalog() {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3">
-                        <button
-                            onClick={() => fixCatalogNames()}
-                            id="btn-fix-catalog"
-                            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all shadow-sm font-bold text-sm"
-                        >
-                            <RotateCcw className="w-4 h-4" />
-                            🔥 REPARAR CATALOGO Y CATEGORIAS
-                        </button>
+
 
                         <button
                             onClick={() => setBulkModalOpen(true)}

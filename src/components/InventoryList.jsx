@@ -120,21 +120,7 @@ export default function InventoryList() {
                 {viewMode === 'list' && (
                     <div className="flex gap-2 w-full md:w-auto">
                         <div className="flex gap-2">
-                            <button
-                                onClick={handleRestore}
-                                className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg transition-colors border border-red-200 dark:border-red-900/30"
-                                title="Restaurar lista completa original"
-                            >
-                                <RotateCcw size={16} /> Reset de Fábrica
-                            </button>
 
-                            <button
-                                onClick={fixCatalogNames}
-                                className="flex items-center gap-2 px-4 py-2 text-sm text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/20 hover:bg-brand-100 dark:hover:bg-brand-900/40 rounded-lg transition-colors border border-brand-200 dark:border-brand-900/30"
-                                title="Corregir nombres duplicados y recuperar precios perdidos"
-                            >
-                                <Wrench size={16} /> Reparar Catálogo
-                            </button>
 
                             <button
                                 onClick={handleExportExcel}
