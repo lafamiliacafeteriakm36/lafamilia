@@ -43,6 +43,13 @@ export default function POS() {
     const [showMPModal, setShowMPModal] = useState(false);
     const [mpPaymentDetected, setMPPaymentDetected] = useState(false);
 
+    // Helper para detectar productos de Panadería
+    const isPanaderia = (p) => {
+        if (!p) return false;
+        const cat = normalize(p.category || '');
+        return cat.includes('panader') || cat === 'pan' || cat === 'panes';
+    };
+
     // Modal para Venta por Peso / Fracción / Monto en $ (Panadería, Sueltos, etc.)
     const [weightModal, setWeightModal] = useState({
         isOpen: false,
@@ -603,16 +610,18 @@ export default function POS() {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3 flex-shrink-0">
-                                        <div
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                openWeightModalForProduct(product);
-                                            }}
-                                            className="p-1.5 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 rounded-md transition-colors cursor-pointer"
-                                            title="Vender por peso o dinero ($)"
-                                        >
-                                            <Scale size={15} />
-                                        </div>
+                                        {isPanaderia(product) && (
+                                            <div
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    openWeightModalForProduct(product);
+                                                }}
+                                                className="p-1.5 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 rounded-md transition-colors cursor-pointer"
+                                                title="Vender por peso o dinero ($)"
+                                            >
+                                                <Scale size={15} />
+                                            </div>
+                                        )}
                                         {product.quantity > 0
                                             ? <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full whitespace-nowrap">Stock: {product.quantity}</span>
                                             : <span className="text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-0.5 rounded-full whitespace-nowrap">Sin Stock</span>
@@ -745,8 +754,8 @@ export default function POS() {
                                             </button>
                                         )}
 
-                                        {/* Botón Balanza / Monto en $ */}
-                                        {!item.isReward && (
+                                        {/* Botón Balanza / Monto en $ (solo para Panadería o ítems fraccionados/sueltos) */}
+                                        {!item.isReward && (isPanaderia(item) || !Number.isInteger(item.quantity) || item.id?.toString().startsWith('suelto_')) && (
                                             <button
                                                 onClick={() => openWeightModalForCartItem(idx)}
                                                 className="p-1 rounded bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60 transition-colors"
@@ -758,9 +767,17 @@ export default function POS() {
 
                                         <button onClick={() => updateQuantity(idx, -1)} className="w-6 h-6 flex items-center justify-center bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded hover:bg-slate-100 dark:hover:bg-slate-600"><Minus size={12} className="dark:text-white" /></button>
                                         <span
-                                            onClick={() => openWeightModalForCartItem(idx)}
-                                            className="text-xs font-bold min-w-[28px] px-1 text-center cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors dark:text-white"
-                                            title="Click para cambiar cantidad, peso o monto"
+                                            onClick={() => {
+                                                if (isPanaderia(item) || !Number.isInteger(item.quantity) || item.id?.toString().startsWith('suelto_')) {
+                                                    openWeightModalForCartItem(idx);
+                                                }
+                                            }}
+                                            className={`text-xs font-bold min-w-[28px] px-1 text-center rounded transition-colors dark:text-white ${
+                                                (isPanaderia(item) || !Number.isInteger(item.quantity) || item.id?.toString().startsWith('suelto_'))
+                                                    ? 'cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700'
+                                                    : ''
+                                            }`}
+                                            title={(isPanaderia(item) || !Number.isInteger(item.quantity)) ? "Click para cambiar cantidad, peso o monto" : "Cantidad"}
                                         >
                                             {Number.isInteger(item.quantity) ? item.quantity : `${Number(item.quantity.toFixed(3))}kg`}
                                         </span>
