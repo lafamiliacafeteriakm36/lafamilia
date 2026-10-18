@@ -3503,29 +3503,85 @@ function useStoreSource() {
         return;
     };
 
+    const fileToBase64 = (file, maxWidth = 400, quality = 0.7) => {
+        return new Promise((resolve) => {
+            try {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        try {
+                            const canvas = document.createElement('canvas');
+                            let width = img.width;
+                            let height = img.height;
+                            if (width > height) {
+                                if (width > maxWidth) {
+                                    height = Math.round((height * maxWidth) / width);
+                                    width = maxWidth;
+                                }
+                            } else {
+                                if (height > maxWidth) {
+                                    width = Math.round((width * maxWidth) / height);
+                                    height = maxWidth;
+                                }
+                            }
+                            canvas.width = width;
+                            canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+                            const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                            resolve(dataUrl);
+                        } catch (e) {
+                            resolve(event.target.result);
+                        }
+                    };
+                    img.onerror = () => resolve(event.target.result);
+                };
+                reader.onerror = () => resolve(null);
+            } catch (e) {
+                resolve(null);
+            }
+        });
+    };
+
     const uploadImage = async (file) => {
         if (!file) return null;
         try {
-            // Create unique filename: timestamp_random.ext
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${Date.now()}_${Math.floor(Math.random() * 1000)}.${fileExt}`;
-            const filePath = `${fileName}`;
+            // Intentar primero con Supabase Storage si el bucket existe
+            if (supabase && supabase.storage) {
+                try {
+                    const fileExt = file.name ? file.name.split('.').pop() : 'jpg';
+                    const fileName = `${Date.now()}_${Math.floor(Math.random() * 1000)}.${fileExt}`;
+                    const filePath = `${fileName}`;
 
-            const { data, error } = await supabase.storage
-                .from('posts')
-                .upload(filePath, file);
+                    const { data, error } = await supabase.storage
+                        .from('posts')
+                        .upload(filePath, file);
 
-            if (error) throw error;
+                    if (!error && data) {
+                        const { data: { publicUrl } } = supabase.storage
+                            .from('posts')
+                            .getPublicUrl(filePath);
 
-            // Get Public URL
-            const { data: { publicUrl } } = supabase.storage
-                .from('posts')
-                .getPublicUrl(filePath);
+                        if (publicUrl) return publicUrl;
+                    } else if (error) {
+                        console.warn('Supabase storage no disponible (' + error.message + '), usando compresión Base64.');
+                    }
+                } catch (storageErr) {
+                    console.warn('Excepción en Supabase storage, usando compresión Base64:', storageErr);
+                }
+            }
 
-            return publicUrl;
+            // Fallback seguro: comprimir imagen liviana a Base64 (máx 400px, ~20KB)
+            const base64Url = await fileToBase64(file, 400, 0.7);
+            if (base64Url) return base64Url;
+
+            throw new Error('No se pudo convertir la imagen');
         } catch (error) {
-            console.error('Error uploading image:', error);
-            alert('Error al subir imagen: ' + error.message);
+            console.error('Error al procesar imagen:', error);
+            alert('Error al procesar la imagen: ' + error.message);
             return null;
         }
     };
