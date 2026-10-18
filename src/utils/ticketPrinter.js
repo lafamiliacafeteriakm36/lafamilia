@@ -21,15 +21,18 @@ export const printTicket = (order) => {
     const printWindow = window.open("", "", "height=600,width=400");
     if (!printWindow) return;
 
-    const orderDetailsHTML = items.map(item =>
-        `<div style="margin-bottom: 8px;">
+    const orderDetailsHTML = items.map(item => {
+        const isDecimal = !Number.isInteger(item.quantity);
+        const qtyFormatted = isDecimal ? `${Number(item.quantity.toFixed(3))} kg` : item.quantity;
+        const itemTotal = Math.round((item.quantity || 1) * (item.price || 0));
+        return `<div style="margin-bottom: 8px;">
             <div style="display:flex; justify-content:space-between; font-weight: bold; font-size: 20px;">
-                <span>${item.name} x${item.quantity}</span>
-                <span>$${(item.quantity * (item.price || 0)).toLocaleString('es-AR')}</span>
+                <span>${item.name} x${qtyFormatted}</span>
+                <span>$${itemTotal.toLocaleString('es-AR')}</span>
             </div>
             ${item.obs ? `<div style="font-size: 0.85em; padding-left: 10px; font-style: italic;">> ${item.obs}</div>` : ''}
-        </div>`
-    ).join('');
+        </div>`;
+    }).join('');
 
     const cardReceived = order.cardReceived || 0;
     const transferReceived = order.transferReceived || 0;
@@ -89,7 +92,7 @@ export const printTicket = (order) => {
 
     // Header
     printWindow.document.write('<div class="header">');
-    printWindow.document.write(`<img src="${tenant.mainLogo || '/logo.jpg'}" alt="La Familia" style="max-width: 240px; width: 100%; height: auto; display: block; margin: 0 auto 10px; border-radius: 8px;" onerror="this.style.display='none'" />`);
+    printWindow.document.write('<img src="/logoblanco.jpg" alt="La Familia" style="max-width: 190px; width: 100%; height: auto; display: block; margin: 0 auto 10px;" onerror="this.style.display=\'none\'" />');
     printWindow.document.write(`<h1>${tenant.systemName}</h1>`);
 
     if (fiscalData) {

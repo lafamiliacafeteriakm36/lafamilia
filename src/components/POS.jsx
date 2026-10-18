@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Trash2, Plus, Minus, CreditCard, Banknote, Save, ArrowRight, Lock, User, Star, X, Gift, Edit, History } from 'lucide-react';
+import { Search, Trash2, Plus, Minus, CreditCard, Banknote, Save, ArrowRight, Lock, User, Star, X, Gift, Edit, History, Scale, DollarSign, Calculator } from 'lucide-react';
 import { useStore } from '../hooks/useStore.jsx';
 import { printTicket } from '../utils/ticketPrinter';
 import { formatCurrency, parseCurrency, normalize } from '../utils/formatters';
@@ -43,6 +43,144 @@ export default function POS() {
     const [showMPModal, setShowMPModal] = useState(false);
     const [mpPaymentDetected, setMPPaymentDetected] = useState(false);
 
+    // Modal para Venta por Peso / Fracción / Monto en $ (Panadería, Sueltos, etc.)
+    const [weightModal, setWeightModal] = useState({
+        isOpen: false,
+        cartIndex: null,
+        product: null,
+        mode: 'money',   // 'money' ($) | 'weight' (gramos/kg) | 'free' (monto directo)
+        moneyInput: '',
+        weightGrams: '',
+        customName: 'Panadería Suelto',
+        customPrice: '',
+        pricePerKg: 3400
+    });
+
+    const openWeightModalForProduct = (product) => {
+        const pricePerKg = Number(product.price || 0);
+        setWeightModal({
+            isOpen: true,
+            cartIndex: null,
+            product: product,
+            mode: 'money',
+            moneyInput: '',
+            weightGrams: '',
+            customName: product.name,
+            customPrice: '',
+            pricePerKg: pricePerKg > 0 ? pricePerKg : 3400
+        });
+    };
+
+    const openWeightModalForCartItem = (index) => {
+        const item = cart[index];
+        if (!item || item.isExpense || item.isReward) return;
+
+        const pricePerKg = Number(item.originalPrice || item.price || 0);
+        const isDecimal = !Number.isInteger(item.quantity);
+        const currentGrams = isDecimal ? Math.round(item.quantity * 1000) : (item.quantity === 1 ? '' : Math.round(item.quantity * 1000));
+        const currentMoney = Math.round(item.quantity * pricePerKg);
+
+        setWeightModal({
+            isOpen: true,
+            cartIndex: index,
+            product: item,
+            mode: 'money',
+            moneyInput: currentMoney > 0 ? String(currentMoney) : '',
+            weightGrams: currentGrams ? String(currentGrams) : '',
+            customName: item.name,
+            customPrice: '',
+            pricePerKg: pricePerKg > 0 ? pricePerKg : 3400
+        });
+    };
+
+    const openQuickSueltoModal = () => {
+        setWeightModal({
+            isOpen: true,
+            cartIndex: null,
+            product: null,
+            mode: 'money',
+            moneyInput: '',
+            weightGrams: '',
+            customName: 'Panadería Suelto',
+            customPrice: '',
+            pricePerKg: 3400
+        });
+    };
+
+    const handleConfirmWeightModal = () => {
+        const { cartIndex, product, mode, moneyInput, weightGrams, customName, customPrice, pricePerKg } = weightModal;
+
+        let finalName = product ? product.name : (customName.trim() || 'Panadería Suelto');
+        let finalCategory = product ? product.category : 'Panadería';
+        let finalPrice = pricePerKg;
+        let finalQty = 1;
+        let finalObs = '';
+
+        if (mode === 'free') {
+            const amt = parseCurrency(customPrice || moneyInput);
+            if (amt <= 0) {
+                alert('Ingresa un monto válido.');
+                return;
+            }
+            finalPrice = amt;
+            finalQty = 1;
+            finalObs = 'Venta suelta';
+        } else if (mode === 'money') {
+            const money = parseCurrency(moneyInput);
+            if (money <= 0) {
+                alert('Ingresa un monto en dinero válido.');
+                return;
+            }
+            if (pricePerKg <= 0) {
+                finalPrice = money;
+                finalQty = 1;
+                finalObs = 'Monto directo';
+            } else {
+                finalPrice = pricePerKg;
+                finalQty = money / pricePerKg;
+                const grams = Math.round(finalQty * 1000);
+                finalObs = `${grams}g ($${pricePerKg.toLocaleString('es-AR')}/kg)`;
+            }
+        } else if (mode === 'weight') {
+            const grams = Number(weightGrams);
+            if (grams <= 0) {
+                alert('Ingresa los gramos o peso válido.');
+                return;
+            }
+            finalPrice = pricePerKg;
+            finalQty = grams / 1000;
+            finalObs = grams >= 1000 ? `${(grams/1000).toFixed(2)} kg` : `${grams}g`;
+        }
+
+        if (cartIndex !== null) {
+            setCart(prev => {
+                const newCart = [...prev];
+                newCart[cartIndex] = {
+                    ...newCart[cartIndex],
+                    name: finalName,
+                    price: finalPrice,
+                    quantity: finalQty,
+                    obs: finalObs
+                };
+                return newCart;
+            });
+        } else {
+            const newItem = {
+                id: product?.id || `suelto_${Date.now()}`,
+                name: finalName,
+                category: finalCategory,
+                price: finalPrice,
+                originalPrice: finalPrice,
+                quantity: finalQty,
+                obs: finalObs,
+                isReward: false,
+                isRedemption: false
+            };
+            setCart(prev => [...prev, newItem]);
+        }
+
+        setWeightModal(prev => ({ ...prev, isOpen: false }));
+    };
 
     // Helper to format input with dots
     const handleAmountChange = (value, setter) => {
@@ -130,7 +268,11 @@ export default function POS() {
     const updateQuantity = (index, delta) => {
         setCart(prev => {
             const newItem = { ...prev[index] };
-            newItem.quantity = Math.max(1, newItem.quantity + delta);
+            if (!Number.isInteger(newItem.quantity)) {
+                newItem.quantity = Math.max(0.05, Number((newItem.quantity + delta * 0.1).toFixed(3)));
+            } else {
+                newItem.quantity = Math.max(1, newItem.quantity + delta);
+            }
             const newCart = [...prev];
             newCart[index] = newItem;
             return newCart;
@@ -172,16 +314,6 @@ export default function POS() {
                     obs: ''
                 };
             } else {
-                // Determine point cost: use product's pointCost
-                // If pointCost is 0, warn? Or just allow "Gift".
-                // User requirement: "canje... no tenga monto".
-                // If pointCost is 0, it's free. 
-
-                // Check points (Customer needs enough points for this item * quantity)
-                // Actually we check at checkout or here? Better here to give feedback.
-                // But quantity changes... checking here is tricky.
-                // We will relax check here, or check only unit cost.
-
                 newCart[index] = {
                     ...item,
                     isRedemption: true,
@@ -224,7 +356,7 @@ export default function POS() {
     };
 
     // Calculate Total
-    const subtotal = cart.reduce((sum, item) => sum + ((item.price || 0) * item.quantity), 0);
+    const subtotal = cart.reduce((sum, item) => sum + Math.round((item.price || 0) * item.quantity), 0);
     const pointsDiscount = pointsToRedeem; // Each point = $1 discount
     const total = Math.max(0, subtotal - pointsDiscount);
 
@@ -300,15 +432,15 @@ export default function POS() {
                 items: cart.map(i => ({
                     name: i.name,
                     category: i.category,
-                    quantity: i.quantity,
+                    quantity: Number(i.quantity.toFixed(3)),
                     price: i.price || 0,
                     obs: i.obs,
                     isReward: i.isReward,
                     isRedemption: i.isRedemption,
                     pointCost: i.pointCost
                 })),
-                totalAmount: total,
-                subtotal: subtotal,
+                totalAmount: Math.round(total),
+                subtotal: Math.round(subtotal),
                 pointsRedeemed: pointsToRedeem,
                 paymentMethod,
                 cashReceived: (paymentMethod === 'efectivo' ? total : (paymentMethod === 'mixto') ? realCash : 0),
@@ -423,7 +555,15 @@ export default function POS() {
                                 autoFocus
                             />
                         </div>
-                        {/* Botón de sincronización removido por ser duplicado */}
+                        {/* Botón Venta Suelta / Peso / Monto */}
+                        <button
+                            onClick={openQuickSueltoModal}
+                            className="h-10 px-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg transition-colors flex items-center gap-1.5 shrink-0 shadow-sm text-xs"
+                            title="Venta Suelta / Peso / Por Monto $"
+                        >
+                            <Scale size={16} />
+                            <span className="hidden sm:inline">Venta Suelta / Peso</span>
+                        </button>
                         <button
                             onClick={addExpenseItem}
                             className="w-10 h-10 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 font-bold rounded-lg hover:bg-red-200 dark:hover:bg-red-900/60 transition-colors flex items-center justify-center shrink-0"
@@ -462,7 +602,17 @@ export default function POS() {
                                             <div className="text-[10px] text-slate-400 dark:text-slate-500">{product.category}</div>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-4 flex-shrink-0">
+                                    <div className="flex items-center gap-3 flex-shrink-0">
+                                        <div
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                openWeightModalForProduct(product);
+                                            }}
+                                            className="p-1.5 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 rounded-md transition-colors cursor-pointer"
+                                            title="Vender por peso o dinero ($)"
+                                        >
+                                            <Scale size={15} />
+                                        </div>
                                         {product.quantity > 0
                                             ? <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full whitespace-nowrap">Stock: {product.quantity}</span>
                                             : <span className="text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-0.5 rounded-full whitespace-nowrap">Sin Stock</span>
@@ -540,7 +690,7 @@ export default function POS() {
                                     ) : (
                                         <div className="flex flex-col items-end">
                                             <span className={`font-bold text-xs ml-2 ${item.isRedemption ? 'text-amber-600 dark:text-amber-400' : 'text-slate-900 dark:text-white'}`}>
-                                                ${(item.price * item.quantity).toLocaleString('es-AR')}
+                                                ${Math.round(item.price * item.quantity).toLocaleString('es-AR')}
                                             </span>
                                             <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
                                                 ${item.price}/u
@@ -554,6 +704,11 @@ export default function POS() {
                                     )}
                                 </div>
                                 <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{item.category}</div>
+                                {item.obs && !item.isExpense && (
+                                    <div className="text-[11px] font-bold text-amber-600 dark:text-amber-400 mt-0.5">
+                                        {item.obs}
+                                    </div>
+                                )}
                                 {item.isExpense && <input
                                     type="text"
                                     placeholder="Detalle del descuento..."
@@ -570,28 +725,45 @@ export default function POS() {
                                     >
                                         <option value="">-- Asignar a Personal --</option>
                                         {employees.map(e => (
-                                            <option key={e.id} value={e.id}>{e.name}</option>
+                                             <option key={e.id} value={e.id}>{e.name}</option>
                                         ))}
                                     </select>
                                 )}
                             </div>
 
-                            <div className="flex items-center gap-2 flex-shrink-0">
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
                                 {!item.isExpense && (
                                     <>
                                         {/* Redemption Toggle */}
                                         {!item.isReward && (
                                             <button
                                                 onClick={() => toggleRedemption(idx)}
-                                                className={`mr-1 p-1 rounded transition-colors ${item.isRedemption ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' : 'text-slate-200 dark:text-slate-700 hover:text-amber-500 dark:hover:text-amber-500'}`}
+                                                className={`p-1 rounded transition-colors ${item.isRedemption ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' : 'text-slate-200 dark:text-slate-700 hover:text-amber-500 dark:hover:text-amber-500'}`}
                                                 title={item.isRedemption ? "Cancelar Canje" : "Canjear con Puntos"}
                                             >
                                                 <Gift size={14} fill={item.isRedemption ? "currentColor" : "none"} />
                                             </button>
                                         )}
 
+                                        {/* Botón Balanza / Monto en $ */}
+                                        {!item.isReward && (
+                                            <button
+                                                onClick={() => openWeightModalForCartItem(idx)}
+                                                className="p-1 rounded bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60 transition-colors"
+                                                title="Vender por peso (kg) o dinero ($)"
+                                            >
+                                                <Scale size={13} />
+                                            </button>
+                                        )}
+
                                         <button onClick={() => updateQuantity(idx, -1)} className="w-6 h-6 flex items-center justify-center bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded hover:bg-slate-100 dark:hover:bg-slate-600"><Minus size={12} className="dark:text-white" /></button>
-                                        <span className="text-xs font-bold w-4 text-center dark:text-white">{item.quantity}</span>
+                                        <span
+                                            onClick={() => openWeightModalForCartItem(idx)}
+                                            className="text-xs font-bold min-w-[28px] px-1 text-center cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors dark:text-white"
+                                            title="Click para cambiar cantidad, peso o monto"
+                                        >
+                                            {Number.isInteger(item.quantity) ? item.quantity : `${Number(item.quantity.toFixed(3))}kg`}
+                                        </span>
                                         <button onClick={() => updateQuantity(idx, 1)} className="w-6 h-6 flex items-center justify-center bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded hover:bg-slate-100 dark:hover:bg-slate-600"><Plus size={12} className="dark:text-white" /></button>
                                     </>
                                 )}
@@ -954,6 +1126,307 @@ export default function POS() {
                         </>
                     )}
                 </button>
+
+                {/* Modal de Venta por Peso / Fracción / Monto en $ */}
+                {weightModal.isOpen && (
+                    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
+                            {/* Header */}
+                            <div className="p-5 bg-gradient-to-r from-amber-500 to-amber-600 text-white flex justify-between items-center">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="p-2 bg-white/20 rounded-xl">
+                                        <Scale size={22} className="text-white" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-black leading-tight">Venta por Peso o Monto</h3>
+                                        <p className="text-xs text-amber-100 font-medium">Panadería, galletas y productos sueltos</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setWeightModal(prev => ({ ...prev, isOpen: false }))}
+                                    className="p-1.5 hover:bg-white/20 rounded-full transition-colors text-white"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className="p-6 space-y-5 overflow-y-auto max-h-[75vh]">
+                                {/* Producto y Precio base por Kg */}
+                                <div className="bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-2xl p-4">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                        <div className="flex-1">
+                                            <label className="text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400 block mb-1">
+                                                {weightModal.product ? 'Producto' : 'Concepto'}
+                                            </label>
+                                            {weightModal.product ? (
+                                                <div className="text-base font-black text-slate-800 dark:text-white">
+                                                    {weightModal.product.name}
+                                                </div>
+                                            ) : (
+                                                <input
+                                                    type="text"
+                                                    value={weightModal.customName}
+                                                    onChange={(e) => setWeightModal(prev => ({ ...prev, customName: e.target.value }))}
+                                                    placeholder="Ej: Pan Francés, Galletitas..."
+                                                    className="w-full text-base font-bold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-amber-500 text-slate-800 dark:text-white"
+                                                />
+                                            )}
+                                        </div>
+                                        <div className="sm:text-right">
+                                            <label className="text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400 block mb-1">
+                                                Precio x Kg ($)
+                                            </label>
+                                            <div className="flex items-center sm:justify-end gap-1">
+                                                <span className="font-bold text-slate-500">$</span>
+                                                <input
+                                                    type="number"
+                                                    value={weightModal.pricePerKg}
+                                                    onChange={(e) => setWeightModal(prev => ({ ...prev, pricePerKg: Number(e.target.value) }))}
+                                                    className="w-24 text-right font-black text-slate-800 dark:text-white bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-amber-500 text-sm"
+                                                    placeholder="3400"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Selector de Modo */}
+                                <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-xl gap-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => setWeightModal(prev => ({ ...prev, mode: 'money' }))}
+                                        className={`flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
+                                            weightModal.mode === 'money'
+                                                ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-sm'
+                                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                        }`}
+                                    >
+                                        <DollarSign size={15} /> Por Dinero ($)
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setWeightModal(prev => ({ ...prev, mode: 'weight' }))}
+                                        className={`flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
+                                            weightModal.mode === 'weight'
+                                                ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-sm'
+                                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                        }`}
+                                    >
+                                        <Scale size={15} /> Por Peso (Balanza)
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setWeightModal(prev => ({ ...prev, mode: 'free' }))}
+                                        className={`flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
+                                            weightModal.mode === 'free'
+                                                ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-sm'
+                                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                        }`}
+                                    >
+                                        <Calculator size={15} /> Monto Directo
+                                    </button>
+                                </div>
+
+                                {/* TAB 1: POR DINERO ($) */}
+                                {weightModal.mode === 'money' && (
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block mb-1.5">
+                                                ¿Cuánto dinero pidió el cliente en pesos?
+                                            </label>
+                                            <div className="relative">
+                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-black text-slate-400">$</span>
+                                                <input
+                                                    type="text"
+                                                    value={formatCurrency(weightModal.moneyInput)}
+                                                    onChange={(e) => setWeightModal(prev => ({ ...prev, moneyInput: parseCurrency(e.target.value) }))}
+                                                    placeholder="1.500"
+                                                    autoFocus
+                                                    className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border-2 border-amber-300 dark:border-amber-800 rounded-2xl text-2xl font-black text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-amber-500 shadow-inner"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Montos habituales */}
+                                        <div className="space-y-1.5">
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Montos Rápidos:</span>
+                                            <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                                                {[500, 1000, 1500, 2000, 2500, 3000].map(amt => (
+                                                    <button
+                                                        key={amt}
+                                                        type="button"
+                                                        onClick={() => setWeightModal(prev => ({ ...prev, moneyInput: amt }))}
+                                                        className={`py-2 px-1 rounded-xl text-xs font-black border transition-all ${
+                                                            Number(weightModal.moneyInput) === amt
+                                                                ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
+                                                                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-400'
+                                                        }`}
+                                                    >
+                                                        ${amt.toLocaleString('es-AR')}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Resumen dinámico */}
+                                        {Number(weightModal.moneyInput) > 0 && weightModal.pricePerKg > 0 && (
+                                            <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-4 flex items-center justify-between">
+                                                <div>
+                                                    <div className="text-xs text-amber-800 dark:text-amber-300 font-medium">Equivale en la balanza a:</div>
+                                                    <div className="text-2xl font-black text-amber-600 dark:text-amber-400">
+                                                        {Math.round((Number(weightModal.moneyInput) / weightModal.pricePerKg) * 1000)} gramos
+                                                        <span className="text-xs font-medium text-slate-500 dark:text-slate-400 ml-1.5">
+                                                            ({(Number(weightModal.moneyInput) / weightModal.pricePerKg).toFixed(3)} kg)
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">Total a cobrar:</div>
+                                                    <div className="text-2xl font-black text-slate-900 dark:text-white">
+                                                        ${Number(weightModal.moneyInput).toLocaleString('es-AR')}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* TAB 2: POR PESO (BALANZA / FRACCIONES) */}
+                                {weightModal.mode === 'weight' && (
+                                    <div className="space-y-4">
+                                        {/* Fracciones rápidas */}
+                                        <div className="space-y-1.5">
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Fracciones de Kilo directas:</span>
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                                {[
+                                                    { label: '1/4 Kg', grams: 250 },
+                                                    { label: '1/2 Kg', grams: 500 },
+                                                    { label: '3/4 Kg', grams: 750 },
+                                                    { label: '1 Kg', grams: 1000 }
+                                                ].map(frac => {
+                                                    const fracPrice = weightModal.pricePerKg > 0 ? Math.round((frac.grams / 1000) * weightModal.pricePerKg) : 0;
+                                                    const isSelected = Number(weightModal.weightGrams) === frac.grams;
+                                                    return (
+                                                        <button
+                                                            key={frac.grams}
+                                                            type="button"
+                                                            onClick={() => setWeightModal(prev => ({ ...prev, weightGrams: frac.grams }))}
+                                                            className={`p-2.5 rounded-xl border text-center transition-all ${
+                                                                isSelected
+                                                                    ? 'bg-amber-500 text-white border-amber-500 shadow-md'
+                                                                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-400'
+                                                            }`}
+                                                        >
+                                                            <div className="font-black text-sm">{frac.label}</div>
+                                                            <div className={`text-[11px] mt-0.5 ${isSelected ? 'text-amber-100' : 'text-slate-400'}`}>
+                                                                {frac.grams}g {fracPrice > 0 ? `($${fracPrice.toLocaleString('es-AR')})` : ''}
+                                                            </div>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block mb-1.5">
+                                                O peso exacto de balanza (en Gramos):
+                                            </label>
+                                            <div className="relative">
+                                                <input
+                                                    type="number"
+                                                    step="1"
+                                                    value={weightModal.weightGrams}
+                                                    onChange={(e) => setWeightModal(prev => ({ ...prev, weightGrams: e.target.value }))}
+                                                    placeholder="Ej: 380"
+                                                    className="w-full pr-20 pl-4 py-3 bg-slate-50 dark:bg-slate-800 border-2 border-amber-300 dark:border-amber-800 rounded-2xl text-2xl font-black text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-amber-500 shadow-inner"
+                                                />
+                                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400 uppercase">
+                                                    Gramos
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Botones de ajuste */}
+                                        <div className="flex gap-1.5 flex-wrap">
+                                            {[100, 200, 300, 400, 500, 800].map(g => (
+                                                <button
+                                                    key={g}
+                                                    type="button"
+                                                    onClick={() => setWeightModal(prev => ({ ...prev, weightGrams: g }))}
+                                                    className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-lg transition-colors"
+                                                >
+                                                    {g}g
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        {/* Resumen dinámico */}
+                                        {Number(weightModal.weightGrams) > 0 && weightModal.pricePerKg > 0 && (
+                                            <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-4 flex items-center justify-between">
+                                                <div>
+                                                    <div className="text-xs text-amber-800 dark:text-amber-300 font-medium">Peso en Balanza:</div>
+                                                    <div className="text-2xl font-black text-amber-600 dark:text-amber-400">
+                                                        {weightModal.weightGrams} gramos
+                                                        <span className="text-xs font-medium text-slate-500 dark:text-slate-400 ml-1.5">
+                                                            ({(Number(weightModal.weightGrams) / 1000).toFixed(3)} kg)
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">Total a cobrar:</div>
+                                                    <div className="text-2xl font-black text-slate-900 dark:text-white">
+                                                        ${Math.round((Number(weightModal.weightGrams) / 1000) * weightModal.pricePerKg).toLocaleString('es-AR')}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* TAB 3: MONTO DIRECTO */}
+                                {weightModal.mode === 'free' && (
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block mb-1.5">
+                                                Monto total a cobrar ($)
+                                            </label>
+                                            <div className="relative">
+                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-black text-slate-400">$</span>
+                                                <input
+                                                    type="text"
+                                                    value={formatCurrency(weightModal.customPrice)}
+                                                    onChange={(e) => setWeightModal(prev => ({ ...prev, customPrice: parseCurrency(e.target.value) }))}
+                                                    placeholder="1.500"
+                                                    autoFocus
+                                                    className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border-2 border-amber-300 dark:border-amber-800 rounded-2xl text-2xl font-black text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-amber-500 shadow-inner"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Footer Buttons */}
+                            <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-800 flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setWeightModal(prev => ({ ...prev, isOpen: false }))}
+                                    className="flex-1 py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold rounded-xl transition-colors text-sm"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleConfirmWeightModal}
+                                    className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-lg shadow-amber-500/20 transition-all text-sm flex items-center justify-center gap-2"
+                                >
+                                    <Save size={18} />
+                                    {weightModal.cartIndex !== null ? 'Actualizar en Carrito' : 'Agregar al Carrito'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Modal QR de MercadoPago */}
                 {showMPModal && (
